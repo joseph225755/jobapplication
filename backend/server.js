@@ -2,10 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import applicationRoutes from './routes/applicationRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -53,7 +58,6 @@ if (!mongoUri || mongoUri === 'YOUR_TEST_MONGODB_ATLAS_URI') {
     })
     .catch((err) => {
       console.error('[Server] MongoDB connection error:', err.message);
-      // Start server even if DB connection initially fails so health endpoint and client receive informative message
       app.listen(port, () => {
         console.log(`[Server] API listening on http://localhost:${port} (database disconnected)`);
       });
