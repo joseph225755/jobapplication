@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import applicationRoutes from './routes/applicationRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -16,7 +17,10 @@ const app = express();
 const port = process.env.PORT || 5000;
 const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
-app.use(cors({ origin: clientUrl, credentials: true }));
+app.use(cors({
+  origin: clientUrl === '*' ? '*' : [clientUrl, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Health check endpoint
@@ -29,10 +33,22 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// Applications routes
+// Applications API routes
 app.use('/api/applications', applicationRoutes);
 
-// 404 handler for unknown routes
+// In production, serve the built React frontend from frontend/dist
+const frontendDist = path.join(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
+// 404 handler for unknown API routes
 app.use(notFoundHandler);
 
 // Centralized error-handling middleware
